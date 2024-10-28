@@ -1,0 +1,23 @@
+- hosts: "workers, master"
+  become: yes
+
+  tasks:
+    - name: create the kube user account
+      ansible.builtin.user:
+        name: kuber
+        append: yes
+        state: present
+        createhome: yes
+        shell: /bin/bash
+
+    - name: allow 'kuber' to use sudo without needing password
+      lineinfile:
+        dest: /etc/sudoers
+        line: "kuber ALL=(ALL) NOPASSWD: ALL"
+        validate: "visudo -cf %s"
+
+    - name: set up authorized keys for the kuber user
+      ansible.posix.authorized_key:
+        user: kuber
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
