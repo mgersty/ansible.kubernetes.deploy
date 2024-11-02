@@ -1,0 +1,7 @@
+- hosts: "master"
+  become: yes
+
+  tasks:
+    - name: kubeadm reset
+      shell: kubeadm reset --force --cri-socket=/var/run/containerd/containerd.sock
+      ignore_errors: true
