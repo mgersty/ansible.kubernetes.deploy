@@ -30,6 +30,17 @@
         sudo modprobe overlay
         sudo modprobe br_netfilter
 
+    - name: Create crictl config
+      shell: |
+        mkdir -p /etc/crictl && touch /etc/crictl/config.yaml
+
+    - name: Add conf for crictl
+      blockinfile:
+        path: "/etc/crictl/config.yaml"
+        block: |
+          runtime-endpoint: unix:///run/containerd/containerd.sock
+          image-endpoint: unix:///run/containerd/containerd.sock
+
     - name: Set system configuration for Kubernetes networking
       file:
         path: "/etc/sysctl.d/99-kubernetes-cri.conf"
@@ -76,3 +87,6 @@
       shell: |
         cat /proc/sys/net/ipv4/ip_forward
         crictl info
+
+    - name: reboot node
+      ansible.builtin.reboot:
