@@ -1,4 +1,4 @@
-- hosts: "master"
+- hosts: "master, workers"
   remote_user: kuber
   become: yes
   become_method: sudo
