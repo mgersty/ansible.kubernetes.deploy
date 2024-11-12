@@ -1,3 +1,5 @@
+#TODO
+# Ensure acl is installed on the master node
 - hosts: master
   become: yes
   tasks:
@@ -17,7 +19,7 @@
 
     - name: copies admin.conf to user's kube # https://kubernetes.io/docs/concepts/configuration/configmap/
       copy:
-        src: /etc/kubernetes/admin
+        src: /etc/kubernetes/admin.conf
         dest: /home/kuber/.kube/config
         remote_src: yes
         owner: kuber
@@ -31,7 +33,7 @@
 
     - name: Get the token for joining the worker nodes
       become: yes
-      become_user: kube
+      become_user: kuber
       shell: kubeadm token create  --print-join-command
       register: kubernetes_join_command
 
