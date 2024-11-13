@@ -3,11 +3,19 @@
 - hosts: master
   become: yes
   tasks:
+    - name: check if cluster is initialized
+      stat:
+        path: $HOME/.kube
+      register: kube_config
+
     - name: init cluster
+      debug:
+        msg: "begin kubeadm init"
       shell: kubeadm init --pod-network-cidr=10.244.0.0/16
       args:
         chdir: $HOME
         creates: cluster_initialized.txt
+      when: not kube_config.stat.exists
 
     - name: create .kube home driver
       become: yes
