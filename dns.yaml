@@ -41,6 +41,7 @@
     - name: create named.conf.local
       blockinfile:
         path: /etc/bind/named.conf.local
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
         block: |
           zone "gerstyco.org" {
             type master;
@@ -57,6 +58,7 @@
     - name: create zonefile
       blockinfile:
         path: /etc/bind/zones/db.gerstyco.org
+        marker: ";# {mark} ANSIBLE MANAGED BLOCK"
         block: |
           ;
           ; BIND data file for local loopback interface
@@ -73,10 +75,10 @@
                IN      NS      pie2.gerstyco.org.
 
           ; name servers - A records
-          pie2.gerstyco.org          IN      A       10.1.1.102
+          pie2.gerstyco.org.         IN      A       10.1.1.102
 
           ; 10.1.1.0/24 - A records
-          pie1.gerstyco.org        IN      A      10.1.1.101
-          pie3.gerstyco.org        IN      A      10.1.1.103
-          pie4.gerstyco.org        IN      A      10.1.1.104
+          pie1.gerstyco.org.       IN      A      10.1.1.101
+          pie3.gerstyco.org.       IN      A      10.1.1.103
+          pie4.gerstyco.org.       IN      A      10.1.1.104
         create: yes
