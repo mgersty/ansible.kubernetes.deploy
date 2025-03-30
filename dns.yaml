@@ -7,24 +7,20 @@
   connection: ssh
 
   tasks:
-    - name: install bind
+    - name: Install BIND
       apt:
         pkg:
           - bind9
           - bind9utils
           - bind9-doc
 
-    - name: set ipv4 for dns
+    - name: Set IPv4 for DNS
       lineinfile:
         path: /etc/default/bind9
         line: OPTIONS="-u bind -4"
         create: yes
 
-    # - name: restart bind9 dns
-    #   shell: |
-    #     systemctl restart bind9
-
-    - name: create named.conf.options
+    - name: Create named.conf.options
       blockinfile:
         path: /etc/bind/named.conf.options
         marker: "# {mark} ANSIBLE MANAGED BLOCK"
@@ -38,7 +34,7 @@
           };
         create: yes
 
-    - name: create named.conf.local
+    - name: Create named.conf.local
       blockinfile:
         path: /etc/bind/named.conf.local
         marker: "# {mark} ANSIBLE MANAGED BLOCK"
@@ -49,13 +45,13 @@
           };
         create: yes
 
-    - name: create zones directory
+    - name: Create zones directory
       file:
         path: /etc/bind/zones
         state: directory
         mode: "0755"
 
-    - name: create zonefile
+    - name: Create zonefile
       blockinfile:
         path: /etc/bind/zones/db.gerstyco.org
         marker: ";# {mark} ANSIBLE MANAGED BLOCK"
@@ -82,3 +78,33 @@
           pie3.gerstyco.org.       IN      A      10.1.1.103
           pie4.gerstyco.org.       IN      A      10.1.1.104
         create: yes
+
+    - name: Restart BIND9
+      systemd:
+        name: bind9
+        state: restarted
+        enabled: yes
+
+# - hosts: all
+#   become: yes
+#   gather_facts: yes
+
+#   tasks:
+#     - name: Get primary network interface
+#       set_fact:
+#         interface: "{{ ansible_default_ipv4.interface }}"
+
+#     - name: Set DNS server for all interfaces
+#       command: "sudo resolvectl dns {{ interface }} 10.1.1.102 8.8.8.8"
+
+#     - name: Set search domain
+#       command: "sudo resolvectl domain {{ interface }} example.com"
+
+#     - name: Verify new DNS settings
+#       command: "resolvectl status {{ interface }}"
+#       register: dns_status
+#       changed_when: false
+
+#     - name: Display DNS status
+#       debug:
+#         var: dns_status

@@ -1,7 +1,17 @@
-- hosts: "master"
+- hosts: "master, workers"
   become: yes
 
   tasks:
     - name: kubeadm reset
       shell: kubeadm reset --force --cri-socket=/var/run/containerd/containerd.sock
       ignore_errors: true
+
+    - name: remove .kube
+      file:
+        path: /root/.kube
+        state: absent
+
+    - name: Remove .kube from home
+      file:
+        path: "/home/kuber/.kube"
+        state: absent
