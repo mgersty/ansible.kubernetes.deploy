@@ -1,0 +1,97 @@
+- name: Install Kubernetes binaries
+  hosts: workers,master
+  become: yes
+  tasks:
+    - name: Install dependencies
+      shell: |
+        apt-get update -y
+        apt-get install -y --allow-change-held-packages kubelet kubeadm kubectl
+        apt-mark hold kubelet kubeadm kubectl
+- name: Set up kubernetes user
+  hosts: workers,master
+  become: yes
+  tasks:
+    - name: Create the kubernetes user user account
+      ansible.builtin.user:
+        name: "{{ kube_user }}"
+        append: yes
+        state: present
+        createhome: yes
+        shell: /bin/bash
+    - name: Allow kubernetes user to use sudo without needing password
+      lineinfile:
+        dest: /etc/sudoers
+        line: "{{ kube_user }} ALL=(ALL) NOPASSWD: ALL"
+        validate: visudo -cf %s
+    - name: Set up authorized keys for the kubernetes user user
+      ansible.posix.authorized_key:
+        user: "{{ kube_user }}"
+        state: present
+        key: "{{ lookup('file', lookup('env', 'HOME') + '/.ssh/id_rsa.pub') }}"
+- name: Install master node
+  hosts: master
+  become: yes
+  tasks:
+    - name: Check if cluster is initialized
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: kube_config
+    - name: Init cluster
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+      args:
+        creates: /etc/kubernetes/admin.conf
+      when: not kube_config.stat.exists
+    - name: Create .kube directory for kuber user
+      become_user: "{{ kube_user }}"
+      file:
+        path: "/home/{{ kube_user }}/.kube"
+        state: directory
+        mode: "0755"
+    - name: Copy admin.conf to kuber user config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ kube_user }}/.kube/config"
+        remote_src: yes
+        owner: "{{ kube_user }}"
+        group: "{{ kube_user }}"
+        mode: "0644"
+    - name: Install pod network (Calico)
+      become_user: "{{ kube_user }}"
+      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      args:
+        chdir: "/home/{{ kube_user }}"
+    - name: Get the token for joining the worker nodes
+      shell: kubeadm token create --print-join-command
+      register: join_command
+    - name: Write join command to file
+      copy:
+        content: '{{ join_command.stdout }}'
+        dest: /tmp/join_command.sh
+        mode: "0700"
+    - name: Fetch join command to control machine
+      fetch:
+        src: /tmp/join_command.sh
+        dest: ./join_command.sh
+        flat: yes
+- name: Join worker nodes to cluster
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Copy join command script
+      copy:
+        src: ./join_command.sh
+        dest: /tmp/join_command.sh
+        mode: "0700"
+    - name: Join node to cluster
+      command: bash /tmp/join_command.sh
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+- name: Clean Up!
+  hosts: all
+  tasks:
+    - name: Remove join_command.sh from controller
+      file:
+        path: ./join_command.sh
+        state: absent
+      delegate_to: localhost
+      run_once: true

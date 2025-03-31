@@ -1,6 +1,0 @@
-- hosts: "workers, master"
-  become: yes
-
-  tasks:
-    - name: Shut down the node
-      community.general.shutdown:
